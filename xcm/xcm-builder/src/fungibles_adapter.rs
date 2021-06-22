@@ -137,11 +137,13 @@ impl<
 	CheckingAccount: Get<AccountId>,
 > TransactAsset for FungiblesMutateAdapter<Assets, Matcher, AccountIdConverter, AccountId, CheckAsset, CheckingAccount> {
 	fn can_check_in(_origin: &MultiLocation, what: &MultiAsset) -> Result {
+		log::debug!(target: "xcm", "can_check_in?");
 		// Check we handle this asset.
 		let (asset_id, amount) = Matcher::matches_fungibles(what).map_err(|e| {
 			log::debug!(target: "xcm", "can_check_in::matches_fungibles failed: {:?}", e);
 			e
 		})?;
+		log::debug!(target: "xcm", "can_check_in: fungible matches");
 		if CheckAsset::contains(&asset_id) {
 			// This is an asset whose teleports we track.
 			let checking_account = CheckingAccount::get();

@@ -160,7 +160,9 @@ impl<Config: config::Config> XcmExecutor<Config> {
 					// We should check that the asset can actually be teleported in (for this to be in error, there
 					// would need to be an accounting violation by one of the trusted chains, so it's unlikely, but we
 					// don't want to punish a possibly innocent chain/user).
-					Config::AssetTransactor::can_check_in(&origin, asset)?;
+					let res = Config::AssetTransactor::can_check_in(&origin, asset);
+					log::debug!(target: "xcm", "TeleportAsset: can_check_in result: {:?}", res);
+					res?;
 				}
 				log::debug!(target: "xcm", "TeleportAsset: check_in");
 				for asset in assets.iter() {
