@@ -108,13 +108,19 @@ impl<
 		to: &MultiLocation,
 	) -> result::Result<xcm_executor::Assets, XcmError> {
 		// Check we handle this asset.
-		let (asset_id, amount) = Matcher::matches_fungibles(what)?;
+		let (asset_id, amount) = Matcher::matches_fungibles(what).map_err(|e| {
+			log::debug!(target: "xcm::fungibles_adapter", "transfer_asset::matches_fungibles failed: {:?}", e);
+			e
+		})?;
 		let source = AccountIdConverter::convert_ref(from)
 			.map_err(|()| MatchError::AccountIdConversionFailed)?;
 		let dest = AccountIdConverter::convert_ref(to)
 			.map_err(|()| MatchError::AccountIdConversionFailed)?;
 		Assets::transfer(asset_id, &source, &dest, amount, true)
-			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+		.map_err(|e| {
+			log::debug!(target: "xcm::fungibles_adapter", "transfer_asset failed: {:?}", e);
+			XcmError::FailedToTransactAsset(e.into())
+	})?;
 		Ok(what.clone().into())
 	}
 }
@@ -132,7 +138,10 @@ impl<
 > TransactAsset for FungiblesMutateAdapter<Assets, Matcher, AccountIdConverter, AccountId, CheckAsset, CheckingAccount> {
 	fn can_check_in(_origin: &MultiLocation, what: &MultiAsset) -> Result {
 		// Check we handle this asset.
-		let (asset_id, amount) = Matcher::matches_fungibles(what)?;
+		let (asset_id, amount) = Matcher::matches_fungibles(what).map_err(|e| {
+			log::debug!(target: "xcm::fungibles_adapter", "can_check_in::matches_fungibles failed: {:?}", e);
+			e
+		})?;
 		if CheckAsset::contains(&asset_id) {
 			// This is an asset whose teleports we track.
 			let checking_account = CheckingAccount::get();
@@ -165,11 +174,17 @@ impl<
 
 	fn deposit_asset(what: &MultiAsset, who: &MultiLocation) -> Result {
 		// Check we handle this asset.
-		let (asset_id, amount) = Matcher::matches_fungibles(what)?;
+		let (asset_id, amount) = Matcher::matches_fungibles(what).map_err(|e| {
+			log::debug!(target: "xcm::fungibles_adapter", "deposit_asset::matches_fungibles failed: {:?}", e);
+			e
+		})?;
 		let who = AccountIdConverter::convert_ref(who)
 			.map_err(|()| MatchError::AccountIdConversionFailed)?;
 		Assets::mint_into(asset_id, &who, amount)
-			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))
+			.map_err(|e| {
+				log::debug!(target: "xcm::fungibles_adapter", "deposit_asset failed: {:?}", e);
+				XcmError::FailedToTransactAsset(e.into())
+			})
 	}
 
 	fn withdraw_asset(
@@ -177,11 +192,17 @@ impl<
 		who: &MultiLocation
 	) -> result::Result<xcm_executor::Assets, XcmError> {
 		// Check we handle this asset.
-		let (asset_id, amount) = Matcher::matches_fungibles(what)?;
+		let (asset_id, amount) = Matcher::matches_fungibles(what).map_err(|e| {
+			log::debug!(target: "xcm::fungibles_adapter", "withdraw_asset::matches_fungibles failed: {:?}", e);
+			e
+		})?;
 		let who = AccountIdConverter::convert_ref(who)
 			.map_err(|()| MatchError::AccountIdConversionFailed)?;
 		Assets::burn_from(asset_id, &who, amount)
-			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+			.map_err(|e| {
+				log::debug!(target: "xcm::fungibles_adapter", "withdraw_asset failed: {:?}", e);
+				XcmError::FailedToTransactAsset(e.into())
+		})?;
 		Ok(what.clone().into())
 	}
 }

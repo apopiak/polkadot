@@ -18,6 +18,7 @@ use xcm::v0::{MultiAsset, Error as XcmError};
 use sp_std::result;
 
 /// Errors associated with [`MatchesFungibles`] operation.
+#[derive(Debug)]
 pub enum Error {
 	/// Asset not found.
 	AssetNotFound,
