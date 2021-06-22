@@ -108,6 +108,7 @@ impl<Config: config::Config> XcmExecutor<Config> {
 		// over-estimate of the actual weight consumed.
 		let mut total_surplus: Weight = 0;
 
+		log::debug!(target: "xcm", "execute message: {:?}", message);
 		let maybe_holding_effects = match (origin.clone(), message) {
 			(origin, Xcm::WithdrawAsset { assets, effects }) => {
 				// Take `assets` from the origin account (on-chain) and place in holding.
@@ -149,6 +150,7 @@ impl<Config: config::Config> XcmExecutor<Config> {
 				None
 			}
 			(origin, Xcm::TeleportAsset { assets, effects }) => {
+				log::debug!(target: "xcm", "TeleportAsset: {:?}, {:?}", assets, effects);
 				// check whether we trust origin to teleport this asset to us via config trait.
 				for asset in assets.iter() {
 					ensure!(!asset.is_wildcard(), XcmError::Wildcard);
@@ -160,6 +162,7 @@ impl<Config: config::Config> XcmExecutor<Config> {
 					// don't want to punish a possibly innocent chain/user).
 					Config::AssetTransactor::can_check_in(&origin, asset)?;
 				}
+				log::debug!(target: "xcm", "TeleportAsset: check_in");
 				for asset in assets.iter() {
 					Config::AssetTransactor::check_in(&origin, asset);
 				}
