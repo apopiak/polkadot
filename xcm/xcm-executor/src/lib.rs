@@ -226,10 +226,12 @@ impl<Config: config::Config> XcmExecutor<Config> {
 		trader: &mut Config::Trader,
 	) -> Result<Weight, XcmError> {
 		let mut total_surplus = 0;
+		log::debug!(target: "xcm", "execute effect: {:?}", effect);
 		match effect {
 			Order::DepositAsset { assets, dest } => {
 				let deposited = holding.saturating_take(assets);
 				for asset in deposited.into_assets_iter() {
+					log::debug!(target: "xcm", "DepositAsset: {:?}, {:?}", &asset, &dest);
 					Config::AssetTransactor::deposit_asset(&asset, &dest)?;
 				}
 			},
