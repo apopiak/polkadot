@@ -140,6 +140,7 @@ impl<
 		what: &MultiAsset,
 		who: &MultiLocation
 	) -> result::Result<Assets, XcmError> {
+		log::debug!(target: "xcm", "withdraw_asset: what: {:?}, who: {:?}", &what, &who);
 		// Check we handle this asset.
 		let amount: u128 = Matcher::matches_fungible(what)
 			.ok_or(Error::AssetNotFound)?
@@ -151,6 +152,7 @@ impl<
 			.map_err(|_| Error::AmountToBalanceConversionFailed)?;
 		Currency::withdraw(&who, balance_amount, WithdrawReasons::TRANSFER, AllowDeath)
 			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+		log::debug!(target: "xcm", "withdraw_asset success: what: {:?}", &what);
 		Ok(what.clone().into())
 	}
 }
