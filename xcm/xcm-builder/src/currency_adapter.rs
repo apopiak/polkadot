@@ -154,7 +154,10 @@ impl<
 			.map_err(|_| Error::AmountToBalanceConversionFailed)?;
 		log::debug!(target: "xcm", "withdraw_asset: balance_amount: {:?}", &balance_amount);
 		Currency::withdraw(&who, balance_amount, WithdrawReasons::TRANSFER, AllowDeath)
-			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
+			.map_err(|e| {
+				log::debug!(target: "xcm", "withdraw_asset failed: {:?}", &e);
+				XcmError::FailedToTransactAsset(e.into())
+			})?;
 		log::debug!(target: "xcm", "withdraw_asset success: what: {:?}", &what);
 		Ok(what.clone().into())
 	}
