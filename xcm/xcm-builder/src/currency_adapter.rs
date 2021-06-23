@@ -145,11 +145,14 @@ impl<
 		let amount: u128 = Matcher::matches_fungible(what)
 			.ok_or(Error::AssetNotFound)?
 			.saturated_into();
+		log::debug!(target: "xcm", "withdraw_asset: amount: {:?}", &amount);
 		let who = AccountIdConverter::convert_ref(who)
 			.map_err(|()| Error::AccountIdConversionFailed)?;
+			log::debug!(target: "xcm", "withdraw_asset: converted account id");
 		let balance_amount = amount
 			.try_into()
 			.map_err(|_| Error::AmountToBalanceConversionFailed)?;
+		log::debug!(target: "xcm", "withdraw_asset: balance_amount: {:?}", &balance_amount);
 		Currency::withdraw(&who, balance_amount, WithdrawReasons::TRANSFER, AllowDeath)
 			.map_err(|e| XcmError::FailedToTransactAsset(e.into()))?;
 		log::debug!(target: "xcm", "withdraw_asset success: what: {:?}", &what);
