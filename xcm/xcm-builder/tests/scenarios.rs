@@ -18,8 +18,8 @@ mod mock;
 
 use frame_support::{pallet_prelude::Weight, weights::constants::WEIGHT_PER_SECOND};
 use mock::{
-	fake_message_hash, kusama_like_with_balances, AccountId, Balance, Balances, BaseXcmWeight, KsmPerSecond,
-	System, XcmConfig, XcmPallet, CENTS,
+	fake_message_hash, kusama_like_with_balances, AccountId, Balance, Balances, BaseXcmWeight,
+	KsmPerSecond, System, XcmConfig, XcmPallet, CENTS,
 };
 use polkadot_parachain::primitives::Id as ParaId;
 use pretty_assertions::assert_eq;
@@ -230,10 +230,11 @@ fn teleport_to_statemine_works() {
 		let hash = fake_message_hash(&message);
 		let r = XcmExecutor::<XcmConfig>::execute_xcm(Parachain(PARA_ID), message, hash, weight);
 		assert_eq!(r, Outcome::Complete(weight));
-		let expected_msg = Xcm(vec![ReceiveTeleportedAsset((Parent, amount - fees(weight)).into()), ClearOrigin]
-			.into_iter()
-			.chain(teleport_effects.clone().into_iter())
-			.collect());
+		let expected_msg =
+			Xcm(vec![ReceiveTeleportedAsset((Parent, amount - fees(weight)).into()), ClearOrigin]
+				.into_iter()
+				.chain(teleport_effects.clone().into_iter())
+				.collect());
 		let expected_hash = fake_message_hash(&expected_msg);
 		assert_eq!(
 			mock::sent_xcm(),
@@ -255,10 +256,11 @@ fn teleport_to_statemine_works() {
 		assert_eq!(r, Outcome::Complete(weight));
 		// 2 * amount because of the other teleport above
 		assert_eq!(Balances::free_balance(para_acc), INITIAL_BALANCE - 2 * amount);
-		let expected_msg = Xcm(vec![ReceiveTeleportedAsset((Parent, amount - fees(weight)).into()), ClearOrigin]
-			.into_iter()
-			.chain(teleport_effects.clone().into_iter())
-			.collect());
+		let expected_msg =
+			Xcm(vec![ReceiveTeleportedAsset((Parent, amount - fees(weight)).into()), ClearOrigin]
+				.into_iter()
+				.chain(teleport_effects.clone().into_iter())
+				.collect());
 		let expected_hash = fake_message_hash(&expected_msg);
 		assert_eq!(
 			mock::sent_xcm(),
@@ -304,10 +306,11 @@ fn reserve_based_transfer_works() {
 		let r = XcmExecutor::<XcmConfig>::execute_xcm(Parachain(PARA_ID), message, hash, weight);
 		assert_eq!(r, Outcome::Complete(weight));
 		assert_eq!(Balances::free_balance(para_acc), INITIAL_BALANCE - amount);
-		let expected_msg = Xcm(vec![ReserveAssetDeposited((Parent, amount - fees(weight)).into()), ClearOrigin]
-			.into_iter()
-			.chain(transfer_effects.into_iter())
-			.collect());
+		let expected_msg =
+			Xcm(vec![ReserveAssetDeposited((Parent, amount - fees(weight)).into()), ClearOrigin]
+				.into_iter()
+				.chain(transfer_effects.into_iter())
+				.collect());
 		let expected_hash = fake_message_hash(&expected_msg);
 		assert_eq!(
 			mock::sent_xcm(),
@@ -337,12 +340,7 @@ fn unknown_tokens_are_trapped_on_failed_buy_execution() {
 			DepositAsset { assets: All.into(), beneficiary: Here.into() },
 		]);
 		let hash = fake_message_hash(&message);
-		let r = XcmExecutor::<XcmConfig>::execute_xcm(
-			origin.clone(),
-			message,
-			hash,
-			weight,
-		);
+		let r = XcmExecutor::<XcmConfig>::execute_xcm(origin.clone(), message, hash, weight);
 		assert_eq!(r, Outcome::Incomplete(3 * BaseXcmWeight::get(), XcmError::TooExpensive));
 		let origin: MultiLocation = origin.into();
 		let hash = determine_hash(&origin, assets);
@@ -376,18 +374,10 @@ fn unknown_tokens_are_trapped_on_failed_deposit() {
 			ReserveAssetDeposited(assets.clone()),
 			ClearOrigin,
 			BuyExecution { fees: ksm, weight_limit: Limited(weight) },
-			DepositAsset {
-				assets: All.into(),
-				beneficiary: Parachain(statemine_id).into(),
-			},
+			DepositAsset { assets: All.into(), beneficiary: Parachain(statemine_id).into() },
 		]);
 		let hash = fake_message_hash(&message);
-		let r = XcmExecutor::<XcmConfig>::execute_xcm(
-			origin.clone(),
-			message,
-			hash,
-			weight,
-		);
+		let r = XcmExecutor::<XcmConfig>::execute_xcm(origin.clone(), message, hash, weight);
 		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
 		let origin: MultiLocation = origin.into();
 		let hash = determine_hash(&origin, vec![para_asset.clone(), other_para_asset.clone()]);
@@ -428,12 +418,7 @@ fn unknown_tokens_are_trapped_on_failed_reserve_deposit() {
 			},
 		]);
 		let hash = fake_message_hash(&message);
-		let r = XcmExecutor::<XcmConfig>::execute_xcm(
-			origin.clone(),
-			message,
-			hash,
-			weight,
-		);
+		let r = XcmExecutor::<XcmConfig>::execute_xcm(origin.clone(), message, hash, weight);
 		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
 		let origin: MultiLocation = origin.into();
 		let hash = determine_hash(&origin, vec![para_asset.clone(), other_para_asset.clone()]);

@@ -570,15 +570,15 @@ impl<Config: config::Config> XcmExecutor<Config> {
 				)?;
 				Ok(())
 			},
-			DepositAsset { assets, beneficiary } => {
-				self.take_assets_and_then(assets,
-					|asset, context| Config::AssetTransactor::deposit_asset(asset, &beneficiary, context)
-				).map(|_| ())
-			},
+			DepositAsset { assets, beneficiary } => self
+				.take_assets_and_then(assets, |asset, context| {
+					Config::AssetTransactor::deposit_asset(asset, &beneficiary, context)
+				})
+				.map(|_| ()),
 			DepositReserveAsset { assets, dest, xcm } => {
-				let deposited = self.take_assets_and_then(assets,
-					|asset, context| Config::AssetTransactor::deposit_asset(asset, &dest, context)
-				)?;
+				let deposited = self.take_assets_and_then(assets, |asset, context| {
+					Config::AssetTransactor::deposit_asset(asset, &dest, context)
+				})?;
 				// Note that we pass `None` as `maybe_failed_bin` and drop any assets which cannot
 				// be reanchored  because we have already called `deposit_asset` on all assets.
 				let assets = Self::reanchored(deposited, &dest, None);
@@ -934,8 +934,14 @@ impl<Config: config::Config> XcmExecutor<Config> {
 
 	// Will take assets from holding and call `f` on each asset. All assets after the first time `f`
 	// errors are `subsume`d back into holding.
-	fn take_assets_and_then<F>(&mut self, assets: MultiAssetFilter, mut f: F) -> Result<Assets, XcmError>
-	where F: FnMut(&MultiAsset, &XcmContext) -> XcmResult {
+	fn take_assets_and_then<F>(
+		&mut self,
+		assets: MultiAssetFilter,
+		mut f: F,
+	) -> Result<Assets, XcmError>
+	where
+		F: FnMut(&MultiAsset, &XcmContext) -> XcmResult,
+	{
 		let taken = self.holding.saturating_take(assets);
 		let mut r = Ok(());
 		for asset in taken.assets_iter() {
