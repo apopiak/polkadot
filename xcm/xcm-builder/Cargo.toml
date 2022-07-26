@@ -31,6 +31,8 @@ polkadot-runtime-parachains = { path = "../../runtime/parachains" }
 assert_matches = "1.5.0"
 pretty_assertions = "1.2.1"
 
+env_logger = "*"
+
 [features]
 default = ["std"]
 runtime-benchmarks = [

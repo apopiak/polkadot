@@ -12748,6 +12748,7 @@ name = "xcm-builder"
 version = "0.9.25"
 dependencies = [
  "assert_matches",
+ "env_logger",
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",

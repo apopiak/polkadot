@@ -608,10 +608,14 @@ impl<Config: config::Config> XcmExecutor<Config> {
 				}
 				// Note that we pass `None` as `maybe_failed_bin` and drop any assets which cannot
 				// be reanchored  because we have already checked all assets out.
-				let assets = Self::reanchored(assets, &dest, None);
-				let mut message = vec![ReceiveTeleportedAsset(assets), ClearOrigin];
+				let reanchored_assets = Self::reanchored(assets.clone(), &dest, None);
+				let mut message = vec![ReceiveTeleportedAsset(reanchored_assets), ClearOrigin];
 				message.extend(xcm.0.into_iter());
-				self.send(dest, Xcm(message), FeeReason::InitiateTeleport)?;
+				self.send(dest, Xcm(message), FeeReason::InitiateTeleport).map_err(|e| {
+					// Put the assets back into holding if we fail to send.
+					self.holding.subsume_assets(assets);
+					e
+				})?;
 				Ok(())
 			},
 			ReportHolding { response_info, assets } => {

@@ -378,7 +378,7 @@ fn unknown_tokens_are_trapped_on_failed_deposit() {
 		]);
 		let hash = fake_message_hash(&message);
 		let r = XcmExecutor::<XcmConfig>::execute_xcm(origin.clone(), message, hash, weight);
-		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
+		assert_eq!(r, Outcome::Incomplete(weight, XcmError::AssetNotFound));
 		let origin: MultiLocation = origin.into();
 		let hash = determine_hash(&origin, vec![para_asset.clone(), other_para_asset.clone()]);
 		assert_eq!(XcmPallet::asset_trap(hash), 1);
@@ -419,9 +419,58 @@ fn unknown_tokens_are_trapped_on_failed_reserve_deposit() {
 		]);
 		let hash = fake_message_hash(&message);
 		let r = XcmExecutor::<XcmConfig>::execute_xcm(origin.clone(), message, hash, weight);
-		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
+		assert_eq!(r, Outcome::Incomplete(weight, XcmError::AssetNotFound));
 		let origin: MultiLocation = origin.into();
 		let hash = determine_hash(&origin, vec![para_asset.clone(), other_para_asset.clone()]);
+		assert_eq!(XcmPallet::asset_trap(hash), 1);
+	});
+}
+
+/// Scenario:
+/// A parachain wants to move KSM from Kusama to Statemine.
+/// The parachain sends an XCM to withdraw funds combined with a teleport to the destination.
+///
+/// This way of moving funds from a relay to a parachain will only work for trusted chains.
+/// Reserve based transfer should be used to move KSM to a community parachain.
+///
+/// Asserts that the balances are updated accordingly and the correct XCM is sent.
+#[test]
+fn teleport_traps_asset_on_failed_send() {
+	let para_acc: AccountId = ParaId::from(PARA_ID).into_account_truncating();
+	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
+	kusama_like_with_balances(balances).execute_with(|| {
+		env_logger::init();
+
+		let other_para_id = 3000;
+		let amount = INITIAL_BALANCE;
+		let teleport_effects = vec![
+			buy_execution(), // unchecked mock value
+			DepositAsset {
+				assets: AllCounted(1).into(),
+				beneficiary: (Parent, Parachain(PARA_ID)).into(),
+			},
+		];
+		let weight = 3 * BaseXcmWeight::get();
+
+		// teleports are allowed to community chains, even in the absence of trust from their side.
+		let message = Xcm(vec![
+			WithdrawAsset((Here, amount).into()),
+			buy_execution(),
+			InitiateTeleport {
+				assets: (MultiAsset::from((Here, amount))).into(),
+				dest: Parachain(other_para_id).into(),
+				xcm: Xcm(teleport_effects.clone()),
+			},
+		]);
+		let hash = fake_message_hash(&message);
+		let origin = Parachain(PARA_ID);
+		let r = XcmExecutor::<XcmConfig>::execute_xcm(origin, message, hash, weight);
+		assert_eq!(r, Outcome::Incomplete(weight, XcmError::NotHoldingFees));
+		assert!(mock::sent_xcm().is_empty());
+		assert_eq!(pallet_xcm::AssetTraps::<mock::Runtime>::iter().count(), 1);
+		let origin: MultiLocation = origin.into();
+		let send_fees = u128::from(CENTS);
+		let hash = determine_hash(&origin, vec![(Here, amount - fees(weight)).into()]);
 		assert_eq!(XcmPallet::asset_trap(hash), 1);
 	});
 }

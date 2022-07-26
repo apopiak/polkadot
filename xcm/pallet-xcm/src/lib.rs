@@ -404,7 +404,7 @@ pub mod pallet {
 	/// times this pair has been trapped (usually just 1 if it exists at all).
 	#[pallet::storage]
 	#[pallet::getter(fn asset_trap)]
-	pub(super) type AssetTraps<T: Config> = StorageMap<_, Identity, H256, u32, ValueQuery>;
+	pub type AssetTraps<T: Config> = StorageMap<_, Identity, H256, u32, ValueQuery>;
 
 	/// Default version to encode XCM when latest version of destination is unknown. If `None`,
 	/// then the destinations whose XCM version is unknown are considered unreachable.

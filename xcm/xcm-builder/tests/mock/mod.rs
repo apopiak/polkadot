@@ -56,7 +56,8 @@ impl SendXcm for TestSendXcm {
 		let msg = msg.take().unwrap();
 		let hash = fake_message_hash(&msg);
 		let triplet = (dest.take().unwrap(), msg, hash);
-		Ok((triplet, MultiAssets::new()))
+		let fees: MultiAsset = (Here, u128::from(CENTS)).into();
+		Ok((triplet, fees.into()))
 	}
 	fn deliver(triplet: (MultiLocation, Xcm<()>, XcmHash)) -> Result<XcmHash, SendError> {
 		let hash = triplet.2;
@@ -187,6 +188,19 @@ pub type TrustedReserves = (
 	xcm_builder::Case<KusamaForStatemine>,
 );
 
+use xcm_executor::traits::{FeeManager, FeeReason};
+pub struct MockFeeManager;
+impl FeeManager for MockFeeManager {
+	// require fees for everything
+	fn is_waived(_: Option<&MultiLocation>, _: FeeReason) -> bool {
+		false
+	}
+	// burn fees
+	fn handle_fee(a: MultiAssets) {
+		log::debug!("FeeManager::handle_fee: {:?}", a);
+	}
+}
+
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
@@ -207,7 +221,7 @@ impl xcm_executor::Config for XcmConfig {
 	type SubscriptionService = XcmPallet;
 	type PalletInstancesInfo = AllPalletsWithSystem;
 	type MaxAssetsIntoHolding = MaxAssetsIntoHolding;
-	type FeeManager = ();
+	type FeeManager = MockFeeManager;
 	type MessageExporter = ();
 	type UniversalAliases = Nothing;
 	type CallDispatcher = Call;
