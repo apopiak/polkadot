@@ -153,8 +153,10 @@ type LocalOriginConverter = (
 );
 
 parameter_types! {
+	// Make sure the combination of base weight * KsmPerSecond is more than WEIGHT_PER_SECOND
+	// (1_000_000_000_000) so the fee is greater than 0.
 	pub const BaseXcmWeight: Weight = 1_000_000_000;
-	pub KsmPerSecond: (AssetId, u128) = (KsmLocation::get().into(), 1);
+	pub KsmPerSecond: (AssetId, u128) = (KsmLocation::get().into(), 1_000);
 }
 
 pub type Barrier = (
@@ -169,8 +171,21 @@ parameter_types! {
 		(Wild(AllOf { id: Concrete(Here.into()), fun: WildFungible }), Parachain(1000).into());
 	pub const MaxInstructions: u32 = 100;
 	pub const MaxAssetsIntoHolding: u32 = 4;
+
+	pub ParachainReserve: (MultiAssetFilter, MultiLocation) =
+		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(Parachain(2000).into()), fun: WildFungible }), X1(Parachain(2000)).into());
+	pub StatemineAssetOneReserve: (MultiAssetFilter, MultiLocation) =
+		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(X2(Parachain(1000), GeneralIndex(1)).into()), fun: WildFungible }), X1(Parachain(1000)).into());
+	pub StatemineAssetTwoReserve: (MultiAssetFilter, MultiLocation) =
+		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(X2(Parachain(1000), GeneralIndex(2)).into()), fun: WildFungible }), X1(Parachain(1000)).into());
 }
 pub type TrustedTeleporters = (xcm_builder::Case<KusamaForStatemine>,);
+pub type TrustedReserves = (
+	xcm_builder::Case<ParachainReserve>,
+	xcm_builder::Case<StatemineAssetOneReserve>,
+	xcm_builder::Case<StatemineAssetTwoReserve>,
+	xcm_builder::Case<KusamaForStatemine>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -178,7 +193,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmSender = TestSendXcm;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
-	type IsReserve = ();
+	type IsReserve = TrustedReserves;
 	type IsTeleporter = TrustedTeleporters;
 	type UniversalLocation = UniversalLocation;
 	type Barrier = Barrier;
