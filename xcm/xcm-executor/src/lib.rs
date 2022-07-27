@@ -588,16 +588,24 @@ impl<Config: config::Config> XcmExecutor<Config> {
 				Ok(())
 			},
 			InitiateReserveWithdraw { assets, reserve, xcm } => {
+				let reanchor_context = Config::UniversalLocation::get();
 				// Note that here we are able to place any assets which could not be reanchored
 				// back into Holding.
-				let assets = Self::reanchored(
-					self.holding.saturating_take(assets),
-					&reserve,
-					Some(&mut self.holding),
-				);
-				let mut message = vec![WithdrawAsset(assets), ClearOrigin];
+				let mut assets = self.holding.saturating_take(assets);
+				assets.reanchor(&reserve, reanchor_context, Some(&mut self.holding));
+				let sent_assets = assets.clone().into_assets_iter().collect::<Vec<_>>().into();
+				let mut message = vec![WithdrawAsset(sent_assets), ClearOrigin];
 				message.extend(xcm.0.into_iter());
-				self.send(reserve, Xcm(message), FeeReason::InitiateReserveWithdraw)?;
+				self.send(reserve, Xcm(message), FeeReason::InitiateReserveWithdraw).map_err(
+					|e| {
+						// We reverse the reanchoring. We pass `None` as the failed bin because we took
+						// the assets from Holding originally and thus don't expect the reanchoring to
+						// fail.
+						assets.reanchor(&Here.into(), reanchor_context, None);
+						self.holding.subsume_assets(assets);
+						e
+					},
+				)?;
 				Ok(())
 			},
 			InitiateTeleport { assets, dest, xcm } => {
