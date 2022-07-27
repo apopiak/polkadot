@@ -440,17 +440,8 @@ fn teleport_traps_asset_on_failed_send() {
 	let para_acc: AccountId = ParaId::from(PARA_ID).into_account_truncating();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
 	kusama_like_with_balances(balances).execute_with(|| {
-		env_logger::init();
-
 		let other_para_id = 3000;
 		let amount = INITIAL_BALANCE;
-		let teleport_effects = vec![
-			buy_execution(), // unchecked mock value
-			DepositAsset {
-				assets: AllCounted(1).into(),
-				beneficiary: (Parent, Parachain(PARA_ID)).into(),
-			},
-		];
 		let weight = 3 * BaseXcmWeight::get();
 
 		// teleports are allowed to community chains, even in the absence of trust from their side.
@@ -460,7 +451,7 @@ fn teleport_traps_asset_on_failed_send() {
 			InitiateTeleport {
 				assets: All.into(),
 				dest: Parachain(other_para_id).into(),
-				xcm: Xcm(teleport_effects.clone()),
+				xcm: Xcm(vec![]),
 			},
 		]);
 		let hash = fake_message_hash(&message);
