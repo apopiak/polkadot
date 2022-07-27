@@ -389,3 +389,53 @@ fn max_assets_limit_should_work() {
 	let r = XcmExecutor::<TestConfig>::execute_xcm(Parachain(1), message, hash, 200);
 	assert_eq!(r, Outcome::Incomplete(25, XcmError::HoldingWouldOverflow));
 }
+
+#[test]
+fn failed_initiate_teleport_should_trap_asset() {
+	AllowUnpaidFrom::set(vec![X1(Parachain(1)).into()]);
+	set_send_price((Here, 1u128));
+	// Child parachain #1 owns 1000 tokens held by us in reserve.
+	add_asset(Parachain(1), (Here, 1000));
+
+	let message = Xcm(vec![
+		WithdrawAsset((Here, 100u128).into()),
+		InitiateTeleport {
+			assets: AllCounted(1).into(),
+			dest: Parachain(2).into(),
+			xcm: Xcm(vec![]),
+		},
+	]);
+	let hash = fake_message_hash(&message);
+
+	let r = XcmExecutor::<TestConfig>::execute_xcm(Parachain(1), message, hash, 50);
+	assert_eq!(r, Outcome::Incomplete(25, XcmError::NotHoldingFees));
+
+	let expected_assets = vec![(Parachain(1).into(), (Here, 100u128).into())];
+	assert_eq!(expected_assets, TrappedAssets::get());
+	assert_eq!(sent_xcm(), vec![]);
+}
+
+#[test]
+fn failed_initiate_reserve_withdraw_should_trap_asset() {
+	AllowUnpaidFrom::set(vec![X1(Parachain(1)).into()]);
+	set_send_price((Here, 1u128));
+	// Child parachain #1 owns 1000 tokens held by us in reserve.
+	add_asset(Parachain(1), (Here, 1000));
+
+	let message = Xcm(vec![
+		WithdrawAsset((Here, 100u128).into()),
+		InitiateReserveWithdraw {
+			assets: AllCounted(1).into(),
+			reserve: Parachain(2).into(),
+			xcm: Xcm(vec![]),
+		},
+	]);
+	let hash = fake_message_hash(&message);
+
+	let r = XcmExecutor::<TestConfig>::execute_xcm(Parachain(1), message, hash, 50);
+	assert_eq!(r, Outcome::Incomplete(25, XcmError::NotHoldingFees));
+
+	let expected_assets = vec![(Parachain(1).into(), (Parent, 100u128).into())];
+	assert_eq!(expected_assets, TrappedAssets::get());
+	assert_eq!(sent_xcm(), vec![]);
+}
