@@ -429,11 +429,12 @@ fn unknown_tokens_are_trapped_on_failed_reserve_deposit() {
 /// Scenario:
 /// A parachain wants to move KSM from Kusama to Statemine.
 /// The parachain sends an XCM to withdraw funds combined with a teleport to the destination.
+/// The teleport fails and is expected to trap the funds remaining in holding.
 ///
 /// This way of moving funds from a relay to a parachain will only work for trusted chains.
 /// Reserve based transfer should be used to move KSM to a community parachain.
 ///
-/// Asserts that the balances are updated accordingly and the correct XCM is sent.
+/// Asserts that the assets end up in the asset trap.
 #[test]
 fn teleport_traps_asset_on_failed_send() {
 	let para_acc: AccountId = ParaId::from(PARA_ID).into_account_truncating();
@@ -457,7 +458,7 @@ fn teleport_traps_asset_on_failed_send() {
 			WithdrawAsset((Here, amount).into()),
 			buy_execution(),
 			InitiateTeleport {
-				assets: (MultiAsset::from((Here, amount))).into(),
+				assets: All.into(),
 				dest: Parachain(other_para_id).into(),
 				xcm: Xcm(teleport_effects.clone()),
 			},
@@ -469,7 +470,6 @@ fn teleport_traps_asset_on_failed_send() {
 		assert!(mock::sent_xcm().is_empty());
 		assert_eq!(pallet_xcm::AssetTraps::<mock::Runtime>::iter().count(), 1);
 		let origin: MultiLocation = origin.into();
-		let send_fees = u128::from(CENTS);
 		let hash = determine_hash(&origin, vec![(Here, amount - fees(weight)).into()]);
 		assert_eq!(XcmPallet::asset_trap(hash), 1);
 	});
